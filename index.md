@@ -6,7 +6,7 @@ Replace this text with a brief description (2-3 sentences) of your project. This
 
 You should comment out all portions of your portfolio that you have not completed yet, as well as any instructions:
 -->
-<!---
+<!--
 ```HTML 
 <!--- This is an HTML comment in Markdown -->
 <!--- Anything between these symbols will not render on the published site -->

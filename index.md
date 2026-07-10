@@ -70,7 +70,7 @@ For your first milestone, describe what your project is and how you plan to buil
 
 ![Wiring Schematic](wrist_device_schematic.png)
 
-# Code
+# Milestone 1 Code
 
 ```c++
 #include <BLEDevice.h>

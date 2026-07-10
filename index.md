@@ -70,20 +70,157 @@ For your first milestone, describe what your project is and how you plan to buil
 ![Wiring Schematic](wrist_device_schematic.png)
 
 # Code
-<!---
-Here's where you'll put your code. The syntax below places it into a block of code. Follow the guide [here]([url](https://www.markdownguide.org/extended-syntax/)) to learn how to customize it to your project needs.
--->
 
 ```c++
+#include <BLEDevice.h>
+#include <BLEServer.h>
+#include <BLEUtils.h>
+#include <BLE2902.h>
+#include <Adafruit_LSM6DS3TRC.h>
+#include <Adafruit_LIS3MDL.h>
+#include <Adafruit_AHRS.h>
+
+#define SERVICE_UUID           "6E400001-B5A3-F393-E0A9-E50E24DCCA9E"
+#define RX_CHARACTERISTIC_UUID "6E400002-B5A3-F393-E0A9-E50E24DCCA9E"
+#define TX_CHARACTERISTIC_UUID "6E400003-B5A3-F393-E0A9-E50E24DCCA9E"
+
+BLEServer *pServer = NULL;
+BLECharacteristic *pTxCharacteristic;
+bool deviceConnected = false;
+
+Adafruit_LSM6DS3TRC lsm6ds;
+Adafruit_LIS3MDL lis3mdl;
+Adafruit_NXPSensorFusion filter;
+
+const int FLEX_PIN = 32;
+const int buzzer = 23;
+
+unsigned long lastPrintTime = 0;
+unsigned long lastFilterUpdate = 0;
+unsigned long buzzerCycleTime = 0;
+
+sensors_event_t accel, gyro, mag, temp;
+
+float accelX = 0, accelY = 0, accelZ = 0;
+float tareX = 0, tareY = 0, tareZ = 0;
+bool isCalibrated = false;
+
+// Defines offset for magnetometer
+#define MAG_HARD_IRON_X -44.56
+#define MAG_HARD_IRON_Y 33.52
+#define MAG_HARD_IRON_Z 7.34
+
+class MyServerCallbacks: public BLEServerCallbacks {
+    void onConnect(BLEServer* pServer) {
+      deviceConnected = true;
+    };
+    void onDisconnect(BLEServer* pServer) {
+      deviceConnected = false;
+      pServer->getAdvertising()->start(); // Restart advertising so ESP-32 can reconnect without resetting the board
+    }
+};
+
 void setup() {
-  // put your setup code here, to run once:
   Serial.begin(9600);
-  Serial.println("Hello World!");
+
+  Wire.begin();
+  
+  BLEDevice::init("AK_ESP32_Bluetooth");
+  pServer = BLEDevice::createServer();
+  pServer->setCallbacks(new MyServerCallbacks());
+
+  BLEService *pService = pServer->createService(SERVICE_UUID);
+
+  pTxCharacteristic = pService->createCharacteristic(TX_CHARACTERISTIC_UUID, BLECharacteristic::PROPERTY_NOTIFY);
+  pTxCharacteristic->addDescriptor(new BLE2902());
+
+  BLECharacteristic *pRxCharacteristic = pService->createCharacteristic(RX_CHARACTERISTIC_UUID, BLECharacteristic::PROPERTY_WRITE);
+
+  pService->start();
+  pServer->getAdvertising()->start();
+  Serial.println("BLE UART is ready and advertising!");
+  
+  lsm6ds.begin_I2C();
+  lis3mdl.begin_I2C();
+  filter.begin(100); // Makes the sensor fusion algorithm make a calculation every 100 Hz
+
+  pinMode(FLEX_PIN, INPUT);
+  pinMode(buzzer, OUTPUT);
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
+  buzzerCycleTime = millis() % 2500;
 
+  if (millis() - lastFilterUpdate >= 10) {
+    lastFilterUpdate = millis();
+
+    lsm6ds.getEvent(&accel, &gyro, &temp);
+    lis3mdl.getEvent(&mag);
+
+    filter.update(gyro.gyro.x * 180.0 / PI, gyro.gyro.y * 180.0 / PI, gyro.gyro.z * 180.0 / PI, accel.acceleration.x / 9.80665, accel.acceleration.y / 9.80665, accel.acceleration.z / 9.80665, mag.magnetic.x - MAG_HARD_IRON_X, mag.magnetic.y - MAG_HARD_IRON_Y, mag.magnetic.z - MAG_HARD_IRON_Z);
+    filter.getLinearAcceleration(&accelX, &accelY, &accelZ);
+  }
+
+  if (!isCalibrated && millis() >= 3000) {
+    tareX = accelX * 9.80665;
+    tareY = accelY * 9.80665;
+    tareZ = accelZ * 9.80665;
+    isCalibrated = true;
+  }
+
+  if (millis() - lastPrintTime >= 500) {
+    lastPrintTime = millis();
+
+    int flexValue = analogRead(FLEX_PIN);
+
+    float cleanX = accelX * 9.80665 - tareX;
+    float cleanY = accelY * 9.80665 - tareY;
+    float cleanZ = accelZ * 9.80665 - tareZ;
+
+    Serial.println("Flex: " + String(flexValue));
+
+    Serial.print("Accel X: "); Serial.print(cleanX);
+    Serial.print(" | Y: ");    Serial.print(cleanY);
+    Serial.print(" | Z: ");    Serial.print(cleanZ);
+    Serial.println(" m/s^2");
+
+    Serial.print("Gyro X: ");  Serial.print(gyro.gyro.x);
+    Serial.print(" | Y: ");    Serial.print(gyro.gyro.y);
+    Serial.print(" | Z: ");    Serial.print(gyro.gyro.z);
+    Serial.println(" rad/s");
+
+    String bluetoothData = "";
+
+    bluetoothData += ("Flex: " + String(flexValue) + "\nAccel X: " + String(cleanX) + " | Y: " + String(cleanY) + " | Z: " + String(cleanZ) + " m/s^2\nGyro X: " + String(gyro.gyro.x) + " | Y: " + String(gyro.gyro.y) + " | Z: " + String(gyro.gyro.z) + " rad/s\n");
+
+    if (deviceConnected) {
+      pTxCharacteristic->setValue(String(bluetoothData).c_str());
+      pTxCharacteristic->notify(); // Pushes data out immediately
+    }
+  }
+  
+  static int buzzerMode = 0;
+  // Makes buzzer beep at 6 kHz for 175 ms then 50 Hz for 175 ms 4 times, then repeats this sequence after 900 ms of silence
+  if (buzzerCycleTime < 1400) {
+    if (buzzerCycleTime % 350 < 175) {
+      if (buzzerMode != 1) {
+        tone(buzzer, 6000, 175);
+        buzzerMode = 1;
+      }
+    } else {
+      if (buzzerMode != 2) {
+        tone(buzzer, 50, 175);
+        buzzerMode = 2;
+      }
+    }
+  } else {
+    if (buzzerMode != 0) {
+      noTone(buzzer);
+      buzzerMode = 0;
+    }
+  }
+
+  yield();
 }
 ```
 

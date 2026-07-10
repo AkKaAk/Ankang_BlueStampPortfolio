@@ -1,14 +1,15 @@
 # Wrist Rehab Device
 My project aims to build a wrist rehabilitation device that not only tracks when a user's wrist position is not ideal, but also tracks whether they are doing rehab exercises with proper form using the accelerometer and gyroscope. It also tracks their rehab process by using the flex sensor to track their range of motion (ROM—the angle that their wrist can bend or twist in a certain direction) and letting users see how they've improved.
+
 <!---
 Replace this text with a brief description (2-3 sentences) of your project. This description should draw the reader in and make them interested in what you've built. You can include what the biggest challenges, takeaways, and triumphs from completing the project were. As you complete your portfolio, remember your audience is less familiar than you are with all that your project entails!
 
 You should comment out all portions of your portfolio that you have not completed yet, as well as any instructions:
+-->
 ```HTML 
 <!--- This is an HTML comment in Markdown -->
 <!--- Anything between these symbols will not render on the published site -->
 ```
--->
 
 | **Engineer** | **School** | **Area of Interest** | **Grade** |
 |:--:|:--:|:--:|:--:|

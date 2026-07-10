@@ -143,7 +143,9 @@ void setup() {
   
   lsm6ds.begin_I2C();
   lis3mdl.begin_I2C();
-  filter.begin(100); // Makes the sensor fusion algorithm make a calculation every 100 Hz
+  lsm6ds.setAccelDataRate(LSM6DS_RATE_208_HZ);
+  lsm6ds.setGyroDataRate(LSM6DS_RATE_208_HZ);
+  filter.begin(200); // Makes the sensor fusion algorithm make a calculation every 100 Hz
 
   pinMode(FLEX_PIN, INPUT);
   pinMode(buzzer, OUTPUT);
@@ -152,8 +154,8 @@ void setup() {
 void loop() {
   buzzerCycleTime = millis() % 2500;
 
-  if (millis() - lastFilterUpdate >= 10) {
-    lastFilterUpdate = millis();
+  if (millis() - lastFilterUpdate >= 5) {
+    lastFilterUpdate += 5;
 
     lsm6ds.getEvent(&accel, &gyro, &temp);
     lis3mdl.getEvent(&mag);
@@ -201,7 +203,7 @@ void loop() {
   }
   
   static int buzzerMode = 0;
-  // Makes buzzer beep at 6 kHz for 175 ms then 50 Hz for 175 ms 4 times, then repeats this sequence after 900 ms of silence
+  // Makes buzzer beep at 6 kHz for 175 ms then 50 Hz for 175 ms 4 times, then repeats this sequence after 1100 ms of silence
   if (buzzerCycleTime < 1400) {
     if (buzzerCycleTime % 350 < 175) {
       if (buzzerMode != 1) {

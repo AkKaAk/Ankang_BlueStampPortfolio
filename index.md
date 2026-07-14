@@ -70,6 +70,214 @@ For your first milestone, describe what your project is and how you plan to buil
 
 ![Wiring Schematic](wrist_device_schematic.png)
 
+# Milestone 2 Code
+
+```c++
+#include <BLEDevice.h>
+#include <BLEServer.h>
+#include <BLEUtils.h>
+#include <BLE2902.h>
+#include <Adafruit_LSM6DS3TRC.h>
+#include <Adafruit_LIS3MDL.h>
+#include <Adafruit_AHRS.h>
+
+#define SERVICE_UUID           "6E400001-B5A3-F393-E0A9-E50E24DCCA9E"
+#define RX_CHARACTERISTIC_UUID "6E400002-B5A3-F393-E0A9-E50E24DCCA9E"
+#define TX_CHARACTERISTIC_UUID "6E400003-B5A3-F393-E0A9-E50E24DCCA9E"
+
+BLEServer *pServer = NULL;
+BLECharacteristic *pTxCharacteristic;
+bool deviceConnected = false;
+
+Adafruit_LSM6DS3TRC lsm6ds;
+Adafruit_LIS3MDL lis3mdl;
+Adafruit_NXPSensorFusion filter;
+
+const int FLEX_PIN = 32;
+const int buzzer = 23;
+
+const int STRAIGHT_FLEX_READING = 2410; // Flex sensor measurement when straight
+const int BENT_FLEX_READING = 1770; // Flex sensor measurement when bent at 90 degrees at approximately the same curvature as my wrist
+float flexAngle = 0;
+
+unsigned long lastPrintTime = 0;
+unsigned long lastFilterUpdate = 0;
+unsigned long buzzerCycleTime = 0;
+
+sensors_event_t accel, gyro, mag, temp;
+
+float accelX = 0, accelY = 0, accelZ = 0;
+float tareX = 0, tareY = 0, tareZ = 0;
+float cleanX = 0, cleanY = 0, cleanZ = 0;
+bool isCalibrated = false;
+unsigned long startCal = 4000;
+unsigned long endCal = 6000;
+float tareSumX = 0.0, tareSumY = 0.0, tareSumZ = 0.0;
+float tareNum = 0.0;
+float accelValue = 0;
+float smoothedJerk = 0;
+
+#define MAG_HARD_IRON_X -44.56
+#define MAG_HARD_IRON_Y 33.52
+#define MAG_HARD_IRON_Z 7.34
+
+const float G = 9.80665; // Acceleration due to gravity on Earth
+
+class MyServerCallbacks: public BLEServerCallbacks {
+    void onConnect(BLEServer* pServer) {
+      deviceConnected = true;
+    };
+    void onDisconnect(BLEServer* pServer) {
+      deviceConnected = false;
+      pServer->getAdvertising()->start(); // Restart advertising so ESP-32 can reconnect without resetting the board
+    }
+};
+
+void setup() {
+  Serial.begin(9600);
+
+  Wire.begin();
+  
+  BLEDevice::init("AK_ESP32_Bluetooth");
+  pServer = BLEDevice::createServer();
+  pServer->setCallbacks(new MyServerCallbacks());
+
+  BLEService *pService = pServer->createService(SERVICE_UUID);
+
+  pTxCharacteristic = pService->createCharacteristic(TX_CHARACTERISTIC_UUID, BLECharacteristic::PROPERTY_NOTIFY);
+  pTxCharacteristic->addDescriptor(new BLE2902());
+
+  BLECharacteristic *pRxCharacteristic = pService->createCharacteristic(RX_CHARACTERISTIC_UUID, BLECharacteristic::PROPERTY_WRITE);
+
+  pService->start();
+  pServer->getAdvertising()->start();
+  Serial.println("BLE UART is ready and advertising!");
+  
+  lsm6ds.begin_I2C();
+  lis3mdl.begin_I2C();
+
+  delay(100);
+
+  lsm6ds.setAccelDataRate(LSM6DS_RATE_208_HZ);
+  lsm6ds.setGyroDataRate(LSM6DS_RATE_208_HZ);
+  filter.begin(200); // Makes the sensor fusion algorithm make a calculation every 100 Hz
+
+  pinMode(FLEX_PIN, INPUT);
+  pinMode(buzzer, OUTPUT);
+}
+
+void loop() {
+  static float lastAccelValue = 0;
+  static float jerk = 0;
+  
+  if (millis() - lastFilterUpdate >= 4) {
+    lastFilterUpdate += 4;
+
+    lsm6ds.getEvent(&accel, &gyro, &temp);
+    lis3mdl.getEvent(&mag);
+
+    filter.update(gyro.gyro.x * 180.0 / PI, gyro.gyro.y * 180.0 / PI, gyro.gyro.z * 180.0 / PI, accel.acceleration.x / G, accel.acceleration.y / G, accel.acceleration.z / G, mag.magnetic.x - MAG_HARD_IRON_X, mag.magnetic.y - MAG_HARD_IRON_Y, mag.magnetic.z - MAG_HARD_IRON_Z);
+    filter.getLinearAcceleration(&accelX, &accelY, &accelZ);
+
+    cleanX = accelX * G - tareX;
+    cleanY = accelY * G - tareY;
+    cleanZ = accelZ * G - tareZ;
+
+    const float deadzone = 0.2;
+
+    float rawAccelValue = sqrt(cleanX * cleanX + cleanY * cleanY + cleanZ * cleanZ);
+    jerk = abs(rawAccelValue - lastAccelValue);
+    smoothedJerk = (0.5 * smoothedJerk) + (0.5 * jerk);
+    
+    if ((abs(jerk) < 0.1 && rawAccelValue < deadzone) || rawAccelValue < deadzone) {
+      accelValue = 0;
+    } else {
+      accelValue = rawAccelValue;
+    }
+    lastAccelValue = rawAccelValue;
+
+    if (accelValue == 0) smoothedJerk = 0;
+
+    static unsigned long lockoutEndTime = 0;
+
+    if (smoothedJerk > 0.5) lockoutEndTime = millis() + 100;
+    
+    if (millis() >= lockoutEndTime) {
+      int rawFlex = analogRead(FLEX_PIN);
+      float rawFlexAngle = 1621 - 1.58 * rawFlex + 0.000481 * pow(rawFlex, 2) - 0.000000043 * pow(rawFlex, 3);
+      flexAngle = constrain(((int)((((rawFlexAngle - 5.0027) * 90) / 87.87718) * 100) / 100.0), 0, 180);
+    }
+  }
+
+  if (!isCalibrated && millis() >= startCal) {
+    tareSumX += cleanX; tareSumY += cleanY; tareSumZ += cleanZ;
+    tareNum++;
+    if (millis() >= endCal) {
+      tareX = tareSumX / tareNum;
+      tareY = tareSumY / tareNum;
+      tareZ = tareSumZ / tareNum;
+      isCalibrated = true;
+    }
+  }
+
+  if (millis() - lastPrintTime >= 500) {
+    lastPrintTime = millis();
+
+    Serial.println("Flex: " + String(flexAngle) + " degrees");
+    Serial.println("Flex RAW: " + String(analogRead(FLEX_PIN)));
+
+    Serial.print("Acceleration: "); Serial.println(String(accelValue) + " m/s^2");
+    Serial.print("Accel X: "); Serial.print(cleanX);
+    Serial.print(" | Y: ");    Serial.print(cleanY);
+    Serial.print(" | Z: ");    Serial.print(cleanZ);
+    Serial.println(" m/s^2");
+
+    Serial.print("Gyro X: ");  Serial.print(gyro.gyro.x);
+    Serial.print(" | Y: ");    Serial.print(gyro.gyro.y);
+    Serial.print(" | Z: ");    Serial.print(gyro.gyro.z);
+    Serial.println(" rad/s");
+
+    String bluetoothData = "";
+
+    bluetoothData += ("Flex: " + String(flexAngle) + " degrees\n");
+    bluetoothData += ("Accel X: " + String(cleanX) + " | Y: " + String(cleanY) + " | Z: " + String(cleanZ) + " m/s^2\n");
+    bluetoothData += ("Gyro X: " + String(gyro.gyro.x) + " | Y: " + String(gyro.gyro.y) + " | Z: " + String(gyro.gyro.z) + " rad/s\n");
+
+    if (deviceConnected) {
+      pTxCharacteristic->setValue(String(bluetoothData).c_str());
+      pTxCharacteristic->notify(); // Pushes data out immediately
+    }
+  }
+  
+  static int buzzerMode = 0;
+  static int currAngle = 0;
+  static unsigned long buzzerDelay = 450;
+
+  if (flexAngle > 20 || buzzerMode != 0) {
+    if (buzzerMode == 0) {
+      buzzerCycleTime = millis();
+      tone(buzzer, 6000);
+      currAngle = flexAngle;
+      buzzerDelay = (map(constrain(currAngle, 20, 90), 20, 90, 450, 150) + 12) / 25 * 25;
+      buzzerMode = 1;
+    } else if (buzzerMode == 1 && millis() - buzzerCycleTime > buzzerDelay) {
+        tone(buzzer, 100);
+        buzzerMode = 2;
+    } else if (buzzerMode == 2 && millis() - buzzerCycleTime > buzzerDelay * 2) {
+      noTone(buzzer);
+      buzzerMode = 0;
+    }
+  } else {
+    if (buzzerMode != 0) {
+      noTone(buzzer);
+      buzzerMode = 0; // Resets the buzzer so noTone() isn't spammed
+    }
+  }
+
+  yield();
+}
+```
+
 # Milestone 1 Code
 
 ```c++

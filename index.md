@@ -1,28 +1,13 @@
 # Wrist Rehab Device
 My project aims to build a wrist rehabilitation device that not only tracks when a user's wrist position is not ideal, but also tracks whether they are doing rehab exercises with proper form using the accelerometer and gyroscope. It also tracks their rehab process by using the flex sensor to track their range of motion (ROM—the angle that their wrist can bend or twist in a certain direction) and letting users see how they've improved.
 
-<!---
-Replace this text with a brief description (2-3 sentences) of your project. This description should draw the reader in and make them interested in what you've built. You can include what the biggest challenges, takeaways, and triumphs from completing the project were. As you complete your portfolio, remember your audience is less familiar than you are with all that your project entails!
-
-You should comment out all portions of your portfolio that you have not completed yet, as well as any instructions:
--->
-<!---
-HTML 
-<!--- This is an HTML comment in Markdown -->
-<!--- Anything between these symbols will not render on the published site -->
-
 | **Engineer** | **School** | **Area of Interest** | **Grade** |
 |:--:|:--:|:--:|:--:|
 | Ankang H | Archbishop Mitty High School | Mechanical Engineering | Incoming Senior
 
-<!---
-**Replace the BlueStamp logo below with an image of yourself and your completed project. Follow the guide [here](https://tomcam.github.io/least-github-pages/adding-images-github-pages-site.html) if you need help.**
-
 ![Headstone Image](logo.svg)
--->
+
 # Final Milestone
-<!---
-**Don't forget to replace the text below with the embedding for your milestone video. Go to Youtube, click Share -> Embed, and copy and paste the code to replace what's below.**
 
 <iframe width="560" height="315" src="https://www.youtube.com/embed/F7M7imOVGug" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
 
@@ -32,32 +17,26 @@ For your final milestone, explain the outcome of your project. Key details to in
 - A summary of key topics you learned about
 - What you hope to learn in the future after everything you've learned at BSE
 -->
+<iframe width="560" height="315" src="https://www.youtube.com/embed/qvfJJ2VkOt4?si=P6-qOHFYMxGg5TXk" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+After strapping my breadboards to a wrist sleeve using tape and completing my third milestone, I decided to make major modifications to my project. First, rather than just sewing everything to a wrist sleeve, I decided to CAD (computer-aided design) a 3D-printed case for my project. This case would create a smooth track for the flex sensors to slide along the back of my wrist and increase the durability of the device as a whole, while also preventing the user from bending the device too far and breaking any sensors. To do this, I had to create a mechanism that would not impede the movement of the user's wrist while also setting hard limits to prevent excessive movement. I designed a mechanism with two sliders in slots and a center pin to allow for three degrees of freedom, allowing for the user to bend their wrist up and down as well as left and right while also being adjustable to different hand/forearm sizes. This hinge with multiple pivots is called a polycentric hinge, and hinges of this type are commonly used in biomedical devices.The case can be strapped onto a user's arm using three Velcro straps, much like the arm guards used in archery. I also decided to move my electronics setup from breadboards to a perfboard, which allowed the form factor to be reduced significantly. I added a switch to allow the user to switch between passive mode, which covered all of the capabilities of the base project (warning the user when their wrist was bent too far), rehab mode, which alerts users when they are performing exercises with poor form, and a light sleep mode which allows the microcontroller to save power. I also added a small 0.96-inch OLED display to display visual feedback to the user using the U8g2 library. I did add a timer to passive mode to let the user know how long they have went without bending their wrist too much. The rehab mode warns the user when their wrist is accelerating too much, as rehab exercises should be performed in a slow and controlled way. It also records personal bests for wrist flexion and extension angles. When the device is in rehab mode, it smartly detects when the user is performing an isometric exercise by detecting the micro-fluctuations in gyroscope and accelerometer readings when muscles tremor when a user performs isometrics. To do this, it sums up the fluctuations over every 4 ms over a period of 2 seconds (so 500 samples) and sees if it exceeds a certain threshold but stays under another. A large arm swing would have a very large sum, as all the gyro changes are in one direction, but as gyro values would vibrate back and forth between positive and negative values, the sum would stay closer to 0. It automatically starts a 10-second timer when the user starts doing an isometric, and if the user holds it for longer than 10 seconds, it extends the timer to 30 seconds. It also tracks how many reps of isometrics the user has done in a session and records the seconds held, including partial reps but not allowing the user to cheat the device entirely.
+
+I had several big triumphs at BSE. First, I made a self-designed a polycentric hinge that smoothly guided the flex sensor and conformed to the wrist. Secondly, I successfully usd code to detect isometric exercises. My device can successfully differentiate between isometric exercises, large arm swings, quick arm shakes, and slow arm shifts.
+
+Some key topics that I learned about were how to use code to make the pins on the microcontroller communicate with one another. I also learned a lot about the functions of electronic components like resistors, capacitators, and more. I learned a lot about the theory behind circuits, like how Ohm's Law is involved and how voltage divider circuits worked. I also learned how to solder circuits together and use solder flux paste.
+
+I hope to learn a lot more about different manufacturing techniques in the future. I'd also like to learn more about how simulation software can simulate stresses experienced by a part.
+
+I'll continue to work on this project in my own time. I'll refine the mechanical design and work on the code such that data is kept across multiple sessions. I can also incorporate a second IMU to track more complex exercises like wrist curls.
 
 # Second Milestone
-<!---
-**Don't forget to replace the text below with the embedding for your milestone video. Go to Youtube, click Share -> Embed, and copy and paste the code to replace what's below.**
 
-<iframe width="560" height="315" src="https://www.youtube.com/embed/y3VAmNlER5Y" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
-
-For your second milestone, explain what you've worked on since your previous milestone. You can highlight:
-- Technical details of what you've accomplished and how they contribute to the final goal
-- What has been surprising about the project so far
-- Previous challenges you faced that you overcame
-- What needs to be completed before your final milestone
--->
+<iframe width="560" height="315" src="https://www.youtube.com/embed/5qvy2aWSr3A?si=4-eTQDZXDlAVY6ra" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+For my second milestone, I managed to convert the raw readings from the flex sensor to an angle by plugging the reading into a 3rd-degree polynomial equation. To obtain this equation, I ran a test where I recorded the approximate reading returned by the sensor per interval of 10 degrees (from 0-90°) and fitting a trendline to it on Google Sheets. I then made the buzzer buzz whenever the angle measurement exceeded 20 degrees. When the wrist was bent at a greater angle, the buzzer was made to buzz faster. I had to basically revamp the structure of my code around the millis() timing system in Arduino IDE, as using delay() for the buzzer froze the entire program from running, which prevented the program from continually tracking wrist angles. I discovered that sudden jerks like the device being tapped on the table could cause flex sensor readings to jump violently (probably due to the particles inside the sensor being disrupted), so I calculated jerk (the derivative of acceleration) using the accelerometer's readings to prevent the flex sensor from reading values in the period immediately after the instant where the jerk exceeds a certain threshold.
 
 # First Milestone
-<!---
-**Don't forget to replace the text below with the embedding for your milestone video. Go to Youtube, click Share -> Embed, and copy and paste the code to replace what's below.**
 
-<iframe width="560" height="315" src="https://www.youtube.com/embed/CaCazFBhYKs" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
-
-For your first milestone, describe what your project is and how you plan to build it. You can include:
-- An explanation about the different components of your project and how they will all integrate together
-- Technical progress you've made so far
-- Challenges you're facing and solving in your future milestones
-- What your plan is to complete your project
--->
+<iframe width="560" height="315" src="https://www.youtube.com/embed/u0jO5ZX_sRc?si=ZlG__jS7vmHKhhlk" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+I wired up all of my sensors on the breadboard according to my wiring schematic. I actually needed to use 2 breadboards as the ESP-32 microcontroller is too wide for a single one. I had to set up a voltage divider for my flex sensor with a resistor to actually let my ESP-32 measure readings. I made my piezo buzzer buzz periodically, and my IMU (inertial measurement unit including an accelerometer, gyroscope, and magnetometer) returned acceleration and angular velocity readings. However, the acceleration measurements made by the accelerometer inside the IMU included the acceleration due to gravity, so I spent a lot of time using the Adafruit AHRS and SensorLab libraries to use a 9-DOF sensor fusion filter, NXPFusion, that combined the readings of the accelerometer, gyroscope, and magnetometer) to allow the IMU to determine its exact orientation and do some math to filter out gravity from the acceleration readings. The magnetometer was extremely prone to ambient magnetic fields, so I had to calibrate it properly in my code. I tried to get Classic Bluetooth to work, but it wasn't agreeing with my computer so I had to switch to using BLE (Bluetooth Low Energy) to establish a connection between my device and my computer for testing.
 
 # Starter Project - Jitterbug
 
@@ -69,6 +48,7 @@ For your first milestone, describe what your project is and how you plan to buil
 -->
 
 ![Wiring Schematic](wrist_device_schematic.png)
+![Perfboard Schematic](wrist_device_schematic.png)
 
 # Milestone 2 Code
 
@@ -442,17 +422,11 @@ Don't forget to place the link of where to buy each component inside the quotati
 
 | **Part** | **Note** | **Price** | **Link** |
 |:--:|:--:|:--:|:--:|
-| Item Name | What the item is used for | $Price | <a href="https://www.amazon.com/Arduino-A000066-ARDUINO-UNO-R3/dp/B008GRTSV6/"> Link </a> |
-| Item Name | What the item is used for | $Price | <a href="https://www.amazon.com/Arduino-A000066-ARDUINO-UNO-R3/dp/B008GRTSV6/"> Link </a> |
-| Item Name | What the item is used for | $Price | <a href="https://www.amazon.com/Arduino-A000066-ARDUINO-UNO-R3/dp/B008GRTSV6/"> Link </a> |
+| ESP32 | The "brains" of the device | $8.54 | <a href="https://www.amazon.com/Arduino-A000066-ARDUINO-UNO-R3/dp/B008GRTSV6/](https://www.amazon.com/ESP-WROOM-32-Development-Microcontroller-Integrated-Compatible/dp/B0DF2YJSHN/)"> Link </a> |
 -->
 
 # Other Resources/Examples
-<!---
-One of the best parts about Github is that you can view how other people set up their own work. Here are some past BSE portfolios that are awesome examples. You can view how they set up their portfolio, and you can view their index.md files to understand how they implemented different portfolio components.
-- [Example 1](https://trashytuber.github.io/YimingJiaBlueStamp/)
-- [Example 2](https://sviatil0.github.io/Sviatoslav_BSE/)
-- [Example 3](https://arneshkumar.github.io/arneshbluestamp/)
 
-To watch the BSE tutorial on how to create a portfolio, click here.
--->
+- [How to use the LSM6DS accelerometer in the LSM6DS3TR-C+LIS3MDL IMU](https://adafruit.github.io/Adafruit_LSM6DS/html/class_adafruit___l_s_m6_d_s3.html)
+- [How to use the U8g2 library with OLED displays](https://github.com/olikraus/u8g2/wiki/setup_tutorial)
+- [How to use millis() in Arduino IDE](https://forum.arduino.cc/t/using-millis-for-timing-a-beginners-guide/483573)

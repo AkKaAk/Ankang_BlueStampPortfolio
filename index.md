@@ -44,7 +44,9 @@ I wired up all of my sensors on the breadboard according to my wiring schematic.
 
 # Schematics
 
+# Wiring Schematic
 ![Wiring Schematic](wrist_device_schematic.png)
+# Perfboard Schematic
 ![Perfboard Schematic](Perfboard Schematic.png)
 
 # Milestone 2 Code

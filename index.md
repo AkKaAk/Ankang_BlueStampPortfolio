@@ -43,12 +43,9 @@ I wired up all of my sensors on the breadboard according to my wiring schematic.
 <iframe width="560" height="315" src="https://www.youtube.com/embed/nMMjlUX_D_o?si=9CbDTJQDhTlcbcu3" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 
 # Schematics
-<!---
-```Here's where you'll put images of your schematics. [Tinkercad](https://www.tinkercad.com/blog/official-guide-to-tinkercad-circuits) and [Fritzing](https://fritzing.org/learning/) are both great resoruces to create professional schematic diagrams, though BSE recommends Tinkercad becuase it can be done easily and for free in the browser.```
--->
 
 ![Wiring Schematic](wrist_device_schematic.png)
-![Perfboard Schematic](wrist_device_schematic.png)
+![Perfboard Schematic](Perfboard Schematic.png)
 
 # Milestone 2 Code
 
